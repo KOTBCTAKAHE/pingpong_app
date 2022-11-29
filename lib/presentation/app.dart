@@ -56,8 +56,8 @@ class App extends StatelessWidget {
           /* dark theme settings */
         ),
         themeMode: ThemeMode.dark,
-        // home: const RegisterPage(),
-        home: const HomePage(),
+        home: const RegisterPage(),
+        // home: const HomePage(),
         onGenerateRoute: appRouter.onGenerateRoute,
         builder: (context, child) => MultiBlocListener(
           listeners: [

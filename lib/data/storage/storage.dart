@@ -40,7 +40,7 @@ class Storage {
   }
 
   setWorkingSstps(List<SstpDataModel> sstps) =>
-      lazyBox.put("workingSstps", jsonEncode(sstps.map((e) => e.toMap())));
+      lazyBox.put("workingSstps", jsonEncode(sstps.map((e) => e.toMap()).toList()));
 
   Future<List<SstpDataModel>> getWorikingSstps() async =>
       (jsonDecode(await lazyBox.get(
