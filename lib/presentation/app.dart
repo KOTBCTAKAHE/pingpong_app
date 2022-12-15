@@ -5,7 +5,6 @@ import 'package:pinging/logic/blocs/app_error_bloc/app_error_bloc.dart';
 import 'package:pinging/logic/blocs/loading_bloc/loading_bloc.dart';
 import 'package:pinging/presentation/components/dialogs/show_app_error.dart';
 import 'package:pinging/presentation/components/loading/loading_screen.dart';
-import 'package:pinging/presentation/pages/home_page.dart';
 import 'package:pinging/presentation/pages/register_page.dart';
 import 'package:pinging/presentation/router/app_router.dart';
 
