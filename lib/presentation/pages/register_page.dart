@@ -11,7 +11,7 @@ class RegisterPage extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final bloc = context.read<AppBloc>();
-    final authKey = Settings().authKey;
+    final authKey = KOT;
     final controller = useTextEditingController(text: authKey);
 
     useEffect(() {
