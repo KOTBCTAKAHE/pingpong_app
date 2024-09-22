@@ -3,7 +3,7 @@ name: Flutter Build and Release
 on:
   push:
     tags:
-      - 'v*'  # Триггер срабатывает при пуше тега, например v1.0.0
+      - 'v*'  # Workflow будет запускаться на тегах, например 'v1.0.0'
 
 jobs:
   build:
@@ -19,18 +19,27 @@ jobs:
         with:
           flutter-version: 'stable'
 
+      - name: Flutter Version
+        run: flutter --version
+
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Doctor Check
+        run: flutter doctor -v  # Проверим состояние окружения Flutter
+
       - name: Build APK
         run: flutter build apk --split-per-abi
+
+      - name: List APK Files
+        run: ls -R build/app/outputs/flutter-apk  # Выводим список сгенерированных файлов для проверки
 
       - name: Upload APKs as build artifacts
         uses: actions/upload-artifact@v3
         with:
           name: apks
           path: build/app/outputs/flutter-apk/
-
+  
   release:
     name: Create GitHub Release
     needs: build
@@ -51,7 +60,7 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Upload APKs to Release
+      - name: Upload APKs to Release (armeabi-v7a)
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -61,7 +70,7 @@ jobs:
           asset_name: app-armeabi-v7a-release.apk
           asset_content_type: application/vnd.android.package-archive
 
-      - name: Upload APKs to Release (64-bit)
+      - name: Upload APKs to Release (arm64-v8a)
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -71,7 +80,7 @@ jobs:
           asset_name: app-arm64-v8a-release.apk
           asset_content_type: application/vnd.android.package-archive
 
-      - name: Upload APKs to Release (x86)
+      - name: Upload APKs to Release (x86_64)
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
