@@ -1,54 +1,56 @@
-name: Flutter Build and Release APK
+name: Flutter Build and Release
 
 on:
   release:
     types: [created]
 
 jobs:
-  build-apk:
+  build:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Set up Flutter
-      uses: actions/setup-flutter@v1
-      with:
-        flutter-version: 'stable'
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: stable # Или укажите конкретную версию Flutter
+          channel: stable # Или укажите канал (beta, dev, master)
 
-    - name: Install dependencies
-      run: flutter pub get
+      - name: Get dependencies
+        run: flutter pub get
 
-    - name: Build APKs
-      run: flutter build apk --split-per-abi
+      - name: Build APKs (split per ABI)
+        run: flutter build apk --split-per-abi
 
-    - name: Upload APKs to release
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: build/app/outputs/flutter-apk/app-arm64-v8a.apk
-        asset_name: app-arm64-v8a.apk
-        asset_content_type: application/vnd.android.package-archive
+      - name: Upload APKs
+        uses: actions/upload-artifact@v3
+        with:
+          name: apks
+          path: build/app/outputs/flutter-apk/*.apk
 
-    - name: Upload APKs to release (x86_64)
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: build/app/outputs/flutter-apk/app-x86_64.apk
-        asset_name: app-x86_64.apk
-        asset_content_type: application/vnd.android.package-archive
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Download APKs
+        uses: actions/download-artifact@v3
+        with:
+          name: apks
 
-    - name: Upload APKs to release (armeabi-v7a)
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: build/app/outputs/flutter-apk/app-armeabi-v7a.apk
-        asset_name: app-armeabi-v7a.apk
-        asset_content_type: application/vnd.android.package-archive
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          name: Release ${{ github.ref }}
+          body: Automatic release
+          draft: false # Установите на true для предварительного релиза
+          prerelease: false # Установите на true для пре-релиза
+
+      - name: Upload APKs to Release
+        uses: actions/upload-artifact@v3
+        with:
+          name: apks
+          path: ./apks/*.apk
