@@ -25,9 +25,9 @@ jobs:
       run: flutter build apk --split-per-abi
 
     - name: Upload APKs as artifacts
-      uses: actions/upload-artifact@v4  # Используем версию v4 для загрузки артефактов
+      uses: actions/upload-artifact@v4  # Версия v4
       with:
-        name: release-apk
+        name: release-apk  # Имя артефакта должно совпадать
         path: build/app/outputs/flutter-apk/release/*.apk  # Правильный путь к APK
 
   upload:
@@ -36,14 +36,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Download build artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v3  # Скачиваем артефакты
       with:
-        name: release-apk
+        name: release-apk  # Имя артефакта совпадает с тем, что выше
 
     - name: Upload APKs to Release
       uses: ncipollo/release-action@v1
       with:
         tag: ${{ github.event.release.tag_name }}
-        artifacts: build/app/outputs/flutter-apk/release/*.apk  # Правильный путь к APK
+        artifacts: build/app/outputs/flutter-apk/release/*.apk  # Путь к APK
         token: ${{ secrets.GITHUB_TOKEN }}
         allowUpdates: true  # Обновляем существующий релиз
