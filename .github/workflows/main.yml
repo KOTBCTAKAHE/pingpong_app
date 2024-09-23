@@ -43,5 +43,7 @@ jobs:
     - name: Upload APKs to Release
       uses: ncipollo/release-action@v1
       with:
+        tag: ${{ github.event.release.tag_name }}
         artifacts: build/app/outputs/flutter-apk/app-*.apk
         token: ${{ secrets.GITHUB_TOKEN }}
+        allowUpdates: true
