@@ -1,56 +1,47 @@
-name: Flutter Build and Release
+name: Build Flutter APK
 
 on:
   release:
-    types: [created]
+    types: [published, prereleased]
 
 jobs:
   build:
+    name: Build APK
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: stable # Или укажите конкретную версию Flutter
-          channel: stable # Или укажите канал (beta, dev, master)
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: 'stable'
 
-      - name: Get dependencies
-        run: flutter pub get
+    - name: Install dependencies
+      run: flutter pub get
 
-      - name: Build APKs (split per ABI)
-        run: flutter build apk --split-per-abi
+    - name: Build APK --split-per-abi
+      run: flutter build apk --split-per-abi
 
-      - name: Upload APKs
-        uses: actions/upload-artifact@v3
-        with:
-          name: apks
-          path: build/app/outputs/flutter-apk/*.apk
+    - name: Upload APKs as artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: release-apk
+        path: build/app/outputs/flutter-apk/
 
-  release:
-    runs-on: ubuntu-latest
+  upload:
+    name: Upload APK to GitHub Release
     needs: build
+    runs-on: ubuntu-latest
     steps:
-      - name: Download APKs
-        uses: actions/download-artifact@v3
-        with:
-          name: apks
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: release-apk
 
-      - name: Create Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          name: Release ${{ github.ref }}
-          body: Automatic release
-          draft: false # Установите на true для предварительного релиза
-          prerelease: false # Установите на true для пре-релиза
-
-      - name: Upload APKs to Release
-        uses: actions/upload-artifact@v3
-        with:
-          name: apks
-          path: ./apks/*.apk
+    - name: Upload APKs to Release
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: build/app/outputs/flutter-apk/app-*.apk
+        token: ${{ secrets.GITHUB_TOKEN }}
