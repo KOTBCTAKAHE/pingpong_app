@@ -1,52 +1,77 @@
-name: Build Flutter APK
-
 on:
-  release:
-    types: [published, prereleased]
-
+  push:
+    tags:
+      - "v*"
+name: "Build & Release"
 jobs:
-  build:
-    name: Build APK
-    runs-on: ubuntu-latest
-
+  build-android-ios:
+    name: Build android & ios files
+    runs-on: macos-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - uses: actions/checkout@v1
 
-    - name: Setup Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        flutter-version: '3.13.0'
-
-    - name: Install dependencies
-      run: flutter pub get
-
-    - name: Build APK --split-per-abi
-      run: flutter build apk --split-per-abi
-
-    - name: Upload APKs as artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: release-apk
-        path: build/app/outputs/flutter-apk/
-
-  upload:
-    name: Upload APK to GitHub Release
-    needs: build
-    runs-on: ubuntu-latest
+      - uses: actions/setup-java@v1
+        with:
+          java-version: '12.x'
+      
+      - uses: subosito/flutter-action@v1
+        with:
+          flutter-version: '3.0.1'
+      - run: flutter pub get
+      # - run: flutter test
+      # - run: flutter build apk --debug --split-per-abi
+      - run: flutter build apk --split-per-abi
+      # - run: flutter build apk --release
+      - run: |
+          flutter build ios --no-codesign
+          cd build/ios/iphoneos
+          mkdir Payload
+          cd Payload
+          ln -s ../Runner.app
+          cd ..
+          zip -r app.ipa Payload
+      
+      - uses: actions/upload-artifact@v3
+        with:
+          name: artifacts
+          path: |
+            build/app/outputs/apk/debug/*
+            build/ios/iphoneos/app.ipa
+            build/app/outputs/apk/release/*
+  build-on-windows:
+    name: Build windows files & release
+    runs-on: windows-latest
+    needs: build-android-ios
     steps:
-    - name: Download build artifacts
-      uses: actions/download-artifact@v3
-      with:
-        name: release-apk
 
-    - name: Extract APKs
-      run: unzip release-apk.zip -d ./release-apks
+      - uses: actions/checkout@v1
+          
+      - uses: actions/setup-java@v1
+        with:
+          java-version: '12.x'
 
-    - name: Upload APKs to Release
-      uses: ncipollo/release-action@v1
-      with:
-        tag: ${{ github.event.release.tag_name }}
-        artifacts: ./release-apks/*.apk
-        token: ${{ secrets.GITHUB_TOKEN }}
-        allowUpdates: true
+      - uses: subosito/flutter-action@v1
+        with:
+          flutter-version: '3.0.1'
+      - run: flutter pub get
+      - run: ECHO 'Y' | flutter pub run msix:create
+
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: artifacts
+          path: artifacts
+
+      - name: Show downloaded artifacts
+        run: ls artifacts
+
+      - name: Push to Releases
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "artifacts/ios/iphoneos/app.ipa,artifacts/app/outputs/apk/release/*,build/windows/runner/Release/*.msix"
+          tag: ${{ steps.get_version.outputs.VERSION }}
+          token: ${{ secrets.TOKEN }}
