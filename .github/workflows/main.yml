@@ -16,7 +16,7 @@ jobs:
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.13.0'  # Явно указываем версию Flutter
+        flutter-version: '3.13.0'  # Укажи стабильную версию
 
     - name: Install dependencies
       run: flutter pub get
@@ -25,10 +25,10 @@ jobs:
       run: flutter build apk --split-per-abi
 
     - name: Upload APKs as artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4  # Используем версию v4 для загрузки артефактов
       with:
         name: release-apk
-        path: build/app/outputs/flutter-apk/
+        path: build/app/outputs/flutter-apk/release/*.apk  # Правильный путь к APK
 
   upload:
     name: Upload APK to GitHub Release
@@ -44,6 +44,6 @@ jobs:
       uses: ncipollo/release-action@v1
       with:
         tag: ${{ github.event.release.tag_name }}
-        artifacts: build/app/outputs/flutter-apk/app-*.apk
+        artifacts: build/app/outputs/flutter-apk/release/*.apk  # Правильный путь к APK
         token: ${{ secrets.GITHUB_TOKEN }}
-        allowUpdates: true
+        allowUpdates: true  # Обновляем существующий релиз
