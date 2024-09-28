@@ -8,7 +8,7 @@ class SstpDataApi {
     required int time,
   }) async {
     var response = await Dio().get(
-      "https://duralga-next-vercel.vercel.app/api/sstps_2",
+      "https://dur-theta.vercel.app/api/sstps_2",
       queryParameters: {
         "key": authKey,
         "deviceId": deviceId,
