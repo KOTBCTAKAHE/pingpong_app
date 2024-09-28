@@ -5,7 +5,7 @@ final baseOptions = BaseOptions(
 );
 
 final localOptions = baseOptions.copyWith(
-  baseUrl: "https://atageldi194229.github.io/pinging-server",
+  baseUrl: "https://github.com/KOTBCTAKAHE/pinging-server/raw/main/data",
   // baseUrl: "https://github.com/atageldi194229/pinging-server/raw/main/data",
 );
 
