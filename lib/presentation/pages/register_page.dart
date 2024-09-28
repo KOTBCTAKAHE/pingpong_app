@@ -40,7 +40,7 @@ class RegisterPage extends HookWidget {
           appBar: AppBar(
             title: const Text("Auth Key"),
             centerTitle: true,
-            backgroundColor: Colors.blueAccent,
+            backgroundColor: Colors.indigo,
             elevation: 0,
             actions: [
               IconButton(
@@ -54,28 +54,29 @@ class RegisterPage extends HookWidget {
           body: Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.blueAccent, Colors.lightBlue],
+                colors: [Colors.indigo, Colors.blueAccent],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
             ),
             child: Center(
               child: Card(
-                elevation: 8,
+                elevation: 10,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(20),
                 ),
+                shadowColor: Colors.black.withOpacity(0.2),
                 child: Padding(
-                  padding: const EdgeInsets.all(20.0),
+                  padding: const EdgeInsets.all(30.0),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Text(
                         "Enter your Auth Key",
                         style: TextStyle(
-                          fontSize: 24,
+                          fontSize: 26,
                           fontWeight: FontWeight.bold,
-                          color: Colors.blueAccent,
+                          color: Colors.indigo,
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -91,23 +92,31 @@ class RegisterPage extends HookWidget {
                             hintText: "Enter your key",
                             filled: true,
                             fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(
+                                vertical: 18, horizontal: 16),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(15),
+                              borderSide: BorderSide.none,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              borderSide: BorderSide(
+                                  color: Colors.indigo.shade200, width: 2),
                             ),
                           ),
                           controller: controller,
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 30),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          primary: Colors.blueAccent,
+                          primary: Colors.indigo,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(15),
                           ),
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 100,
-                            vertical: 15,
+                            horizontal: 110,
+                            vertical: 18,
                           ),
                         ),
                         onPressed: () => _onSubmitted(
@@ -117,35 +126,14 @@ class RegisterPage extends HookWidget {
                         ),
                         child: const Text(
                           "Submit",
-                          style: TextStyle(fontSize: 18, color: Colors.white),
+                          style: TextStyle(
+                            fontSize: 20,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          bottomNavigationBar: Container(
-            height: kBottomNavigationBarHeight,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.blueAccent, Colors.lightBlue],
-              ),
-            ),
-            child: Center(
-              child: TextButton(
-                onPressed: () => _onSubmitted(
-                  context: context,
-                  bloc: bloc,
-                  value: controller.text,
-                ),
-                child: const Text(
-                  "Try",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
                   ),
                 ),
               ),
@@ -171,7 +159,13 @@ class RegisterPage extends HookWidget {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text("App Information"),
+          title: const Text(
+            "App Information",
+            style: TextStyle(
+              color: Colors.indigo,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           content: const Text(
             "This app is a modification by KOTBCTAKAHE.\n"
             "The original app is developed by Atasan Bratan.",
@@ -179,7 +173,10 @@ class RegisterPage extends HookWidget {
           ),
           actions: <Widget>[
             TextButton(
-              child: const Text("OK"),
+              child: const Text(
+                "OK",
+                style: TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold),
+              ),
               onPressed: () {
                 Navigator.of(context).pop();
               },
