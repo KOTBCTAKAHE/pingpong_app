@@ -19,7 +19,7 @@ class GithubApi {
     required String deviceId,
   }) =>
       ApiLoader(
-        path: "https://duralga-next-vercel.vercel.app/api/auth",
+        path: "https://dur-theta.vercel.app/api/auth",
         loader: (path) => Dio(baseOptions).get(path, queryParameters: {
           "key": authKey,
           "deviceId": deviceId,
