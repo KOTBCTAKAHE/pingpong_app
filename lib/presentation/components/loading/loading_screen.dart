@@ -11,7 +11,6 @@ class LoadingScreen {
   LoadingScreenController? controller;
 
   void show({
-    // required BuildContext context,
     required GlobalKey<NavigatorState> navigatorKey,
     required String text,
   }) {
@@ -31,20 +30,14 @@ class LoadingScreen {
   }
 
   LoadingScreenController showOverlay({
-    // required BuildContext context,
     required GlobalKey<NavigatorState> navigatorKey,
     required String text,
   }) {
     final controller = StreamController<String>();
     controller.add(text);
 
-// access OverlayState
-    // final OverlayState state = Overlay.of(context);
     final OverlayState? state = navigatorKey.currentState!.overlay;
     BuildContext context = navigatorKey.currentContext!;
-
-    // final renderBox = context.findRenderObject() as RenderBox;
-    // final size = renderBox.size;
 
     final size = MediaQuery.of(context).size;
 
@@ -88,42 +81,48 @@ class _LoadingWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      // constraints: BoxConstraints(
-      //   maxWidth: size.width * 0.8,
-      //   maxHeight: size.height * 0.8,
-      //   minWidth: size.width * 0.5,
-      // ),
+      width: size.width * 0.8,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Theme.of(context).backgroundColor,
-        borderRadius: BorderRadius.circular(10.0),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const SizedBox(height: 10),
-              CircularProgressIndicator(
-                color: Theme.of(context).primaryColor,
-              ),
-              const SizedBox(height: 20),
-              StreamBuilder(
-                stream: controller.stream,
-                builder: (context, snapshot) {
-                  if (snapshot.hasData) {
-                    return Text(
-                      snapshot.data as String,
-                      textAlign: TextAlign.center,
-                    );
-                  } else {
-                    return Container();
-                  }
-                },
-              ),
-            ],
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            spreadRadius: 5,
           ),
+        ],
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(height: 10),
+            CircularProgressIndicator(
+              color: Theme.of(context).primaryColor,
+              strokeWidth: 6.0,
+            ),
+            const SizedBox(height: 20),
+            StreamBuilder<String>(
+              stream: controller.stream,
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  return Text(
+                    snapshot.data!,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ],
         ),
       ),
     );
