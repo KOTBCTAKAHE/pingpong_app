@@ -39,35 +39,115 @@ class RegisterPage extends HookWidget {
         child: Scaffold(
           appBar: AppBar(
             title: const Text("Auth Key"),
-          ),
-          bottomNavigationBar: SizedBox(
-            height: kBottomNavigationBarHeight,
-            child: ElevatedButton(
-              style: TextButton.styleFrom(
-                backgroundColor: Colors.blue,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(0.0)),
-                ),
+            centerTitle: true,
+            backgroundColor: Colors.blueAccent,
+            elevation: 0,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.info_outline),
+                onPressed: () {
+                  _showInfoDialog(context);
+                },
               ),
-              child: const Text("Try"),
-              onPressed: () => _onSubmitted(
-                context: context,
-                bloc: bloc,
-                value: controller.text,
+            ],
+          ),
+          body: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.blueAccent, Colors.lightBlue],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+            child: Center(
+              child: Card(
+                elevation: 8,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        "Enter your Auth Key",
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blueAccent,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: 300,
+                        child: TextFormField(
+                          onFieldSubmitted: (value) => _onSubmitted(
+                            context: context,
+                            bloc: bloc,
+                            value: controller.text,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: "Enter your key",
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          controller: controller,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          primary: Colors.blueAccent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 100,
+                            vertical: 15,
+                          ),
+                        ),
+                        onPressed: () => _onSubmitted(
+                          context: context,
+                          bloc: bloc,
+                          value: controller.text,
+                        ),
+                        child: const Text(
+                          "Submit",
+                          style: TextStyle(fontSize: 18, color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
-          body: Center(
-            child: SizedBox(
-              width: 250,
-              child: TextFormField(
-                onFieldSubmitted: (value) => _onSubmitted(
+          bottomNavigationBar: Container(
+            height: kBottomNavigationBarHeight,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.blueAccent, Colors.lightBlue],
+              ),
+            ),
+            child: Center(
+              child: TextButton(
+                onPressed: () => _onSubmitted(
                   context: context,
                   bloc: bloc,
                   value: controller.text,
                 ),
-                decoration: const InputDecoration(hintText: "Key"),
-                controller: controller,
+                child: const Text(
+                  "Try",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
           ),
@@ -83,5 +163,30 @@ class RegisterPage extends HookWidget {
   }) {
     Settings().authKey = value;
     bloc.add(AppEventAuth(value));
+  }
+
+  // Всплывающее окно информации
+  void _showInfoDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("App Information"),
+          content: const Text(
+            "This app is a modification by KOTBCTAKAHE.\n"
+            "The original app is developed by Atasan Bratan.",
+            textAlign: TextAlign.center,
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text("OK"),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 }
