@@ -93,7 +93,14 @@ class HomePage extends HookWidget {
             const PingingProgressIndicator(),
           ],
         ),
-        body: buildBody(scrollController1),
+        body: BlocListener<AppBloc, AppState>(
+          listener: (context, state) {
+            if (state is AppStateDetailedError) {
+              _showErrorDialog(context, state.error.title, state.detailedError);
+            }
+          },
+          child: buildBody(scrollController1),
+        ),
       ),
     );
   }
@@ -184,12 +191,10 @@ class HomePage extends HookWidget {
                                 bloc.add(AppEventToggleGhFile(files, index));
                               },
                               title: Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 4.0),
+                                padding: const EdgeInsets.symmetric(vertical: 4.0),
                                 child: Text(
                                   "${file.name} - ${file.sstpCount}",
-                                  style:
-                                      Theme.of(context).textTheme.titleSmall,
+                                  style: Theme.of(context).textTheme.titleSmall,
                                 ),
                               ),
                               subtitle: Column(
