@@ -96,22 +96,48 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     });
 
     on<AppEventLoadFiles>((event, emit) async {
-      await handleError(() async {
-        var files = await GithubRepository().getListOfFiles();
-        emit(AppStateFiles(files, Storage().sstpFiles.values));
+  try {
+    await handleError(() async {
+      var files = await GithubRepository().getListOfFiles();
+      emit(AppStateFiles(files, Storage().sstpFiles.values));
 
-        final files2 = files.toList();
+      final files2 = files.toList();
 
-        for (int i = 0; i < files2.length; i++) {
-          emit(AppStateSstpFileChecked(
-            key: i,
-            value: Settings().selectedFiles.any((e) => e == files2[i].name),
-          ));
-        }
+      for (int i = 0; i < files2.length; i++) {
+        emit(AppStateSstpFileChecked(
+          key: i,
+          value: Settings().selectedFiles.any((e) => e == files2[i].name),
+        ));
+      }
 
-        await loadSstpsFromCache(emit);
-      });
+      await loadSstpsFromCache(emit);
     });
+  } catch (e, stackTrace) {
+    // Логируем ошибку для отладки
+    print('Error occurred: $e');
+    print('Stack trace: $stackTrace');
+
+    // Вызываем метод для показа ошибки пользователю
+    showAppError(
+      context: context, // передайте текущий контекст
+      error: AppError(
+        title: 'File Load Error',
+        description: 'An error occurred while loading files.',
+        detailedError: e.toString(), // Показываем детализированную ошибку
+      ),
+    );
+
+    // Если хотите также передать состояние ошибки в Bloc
+    emit(AppStateError(
+      error: AppError(
+        title: 'File Load Error',
+        description: 'An error occurred while loading files.',
+        detailedError: e.toString(),
+      ),
+    ));
+  }
+});
+
 
     on<AppEventAuth>((event, emit) async {
       loadingBloc.add(const StartLoadingEvent());
