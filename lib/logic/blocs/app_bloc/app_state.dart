@@ -74,3 +74,24 @@ class AppStateHistory extends AppStateSstps {
 
 @immutable
 class AppInitial extends AppState {}
+
+/// Новое состояние для отображения детализированной ошибки
+@immutable
+class AppStateDetailedError extends AppState {
+  final AppError error;
+  final String detailedError;
+
+  AppStateDetailedError({
+    required this.error,
+    required this.detailedError,
+  });
+}
+
+@immutable
+class AppStateError extends AppState {
+  final AppError error;
+
+  AppStateError({
+    required this.error,
+  });
+}
