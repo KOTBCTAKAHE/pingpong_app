@@ -320,7 +320,7 @@ class HomePage extends HookWidget {
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
-                  child: const Text("Ok"),
+                  child: const Text("OK"),
                 ),
               ],
             );

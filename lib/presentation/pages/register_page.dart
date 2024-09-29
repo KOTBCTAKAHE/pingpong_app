@@ -13,9 +13,16 @@ class RegisterPage extends HookWidget {
     final bloc = context.read<AppBloc>();
     final authKey = Settings().authKey;
     final controller = useTextEditingController(text: authKey);
+    final alwaysSkip = useState(Settings().alwaysSkipRegistration);
 
     useEffect(() {
-      if (authKey.isNotEmpty) {
+      if (Settings().alwaysSkipRegistration) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => const HomePage(),
+          ),
+        );
+      } else if (authKey.isNotEmpty) {
         _onSubmitted(
           context: context,
           bloc: bloc,
@@ -110,7 +117,7 @@ class RegisterPage extends HookWidget {
                       const SizedBox(height: 30),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.indigo,
+                          backgroundColor: Colors.indigo,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(15),
                           ),
@@ -132,6 +139,56 @@ class RegisterPage extends HookWidget {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
+                      ),
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey.shade300,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 90,
+                            vertical: 18,
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (context) => const HomePage(),
+                            ),
+                          );
+                        },
+                        child: const Text(
+                          "Skip Registration",
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.black87,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Checkbox(
+                            value: alwaysSkip.value,
+                            onChanged: (value) {
+                              alwaysSkip.value = value ?? false;
+                              Settings().alwaysSkipRegistration = value ?? false;
+                            },
+                            activeColor: Colors.indigo,
+                          ),
+                          const Text(
+                            "Always skip registration",
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.indigo,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -168,7 +225,7 @@ class RegisterPage extends HookWidget {
           ),
           content: const Text(
             "This app is a modification by KOTBCTAKAHE.\n"
-            "The original app is developed by Atasan Bratan.",
+                "The original app is developed by Atasan Bratan.",
             textAlign: TextAlign.center,
           ),
           actions: <Widget>[

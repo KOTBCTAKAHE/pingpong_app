@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pinging/data/models/sstp_data.dart';
+import 'package:emoji_flag_converter/emoji_flag_converter.dart';
 
 class SstpAddressCard extends StatelessWidget {
   final SstpDataModel sstp;
@@ -9,8 +9,11 @@ class SstpAddressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Убираем лишние пробелы и приводим код страны к нижнему регистру
-    final countryCode = sstp.location?.short?.trim().toLowerCase() ?? 'unknown';
+    // Получаем код страны и удаляем лишние пробелы
+    final countryCode = sstp.location?.short?.trim().toUpperCase() ?? '--';
+
+    // Конвертируем код страны в эмодзи флаг с помощью emoji_flag_converter
+    final flagEmoji = EmojiConverter.fromAlpha2CountryCode(countryCode) ?? '🏳️';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
@@ -49,20 +52,15 @@ class SstpAddressCard extends StatelessWidget {
             padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
-                // Обернули флаг в ClipOval, чтобы сделать его круглым
-                ClipOval(
-                  child: Container(
-                    color: Colors.white, // Белый фон для флага
-                    child: SvgPicture.asset(
-                      'packages/country_icons/icons/flags/svg/$countryCode.svg',
-                      width: 50,
-                      height: 50,
-                      fit: BoxFit.contain, // Обеспечиваем правильное соотношение сторон
-                      placeholderBuilder: (context) => const Icon(
-                        Icons.flag,
-                        color: Colors.grey,
-                        size: 30,
-                      ),
+                // Используем CircleAvatar для отображения эмодзи флага
+                CircleAvatar(
+                  backgroundColor: Colors.white,
+                  radius: 30,
+                  child: Text(
+                    flagEmoji,
+                    style: const TextStyle(
+                      fontSize: 30,
+                      fontFamily: null,
                     ),
                   ),
                 ),
@@ -108,7 +106,7 @@ class SstpAddressCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Icon(
                       Icons.network_check,
-                      color: sstp.ms != null && sstp.ms! < 100
+                      color: sstp.ms != null && sstp.ms! < 250
                           ? Colors.lightGreenAccent
                           : Colors.redAccent,
                       size: 24,

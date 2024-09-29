@@ -11,10 +11,12 @@ class Settings {
 
   late Box settings;
 
-  static init() async {
+  static Future<void> init() async {
+    await Hive.initFlutter(); // Инициализация Hive
     await Hive.openBox("settings");
   }
 
+  // Геттеры и сеттеры для сохранения данных
   String? get deviceId =>
       settings.get("deviceId", defaultValue: null) as String?;
 
@@ -28,8 +30,15 @@ class Settings {
           .map<String>((e) => e)
           .toList();
 
+  bool get alwaysSkipRegistration =>
+      settings.get("alwaysSkipRegistration", defaultValue: false) as bool;
+
   set deviceId(String? value) => settings.put("deviceId", value);
   set authKey(String value) => settings.put("authKey", value);
   set lastRequestedTime(int value) => settings.put("lastRequestedTime", value);
   set selectedFiles(List<String> value) => settings.put("selectedFiles", value);
+
+  // Новый сеттер для alwaysSkipRegistration
+  set alwaysSkipRegistration(bool value) =>
+      settings.put("alwaysSkipRegistration", value);
 }
