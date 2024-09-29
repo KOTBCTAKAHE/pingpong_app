@@ -56,7 +56,7 @@ class HomePage extends HookWidget {
             SizedBox(
               height: kBottomNavigationBarHeight,
               child: Container(
-                color: Theme.of(context).bottomAppBarColor,
+                  color: Theme.of(context).colorScheme.surface,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [

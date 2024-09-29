@@ -88,13 +88,8 @@ class _LoadingWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      // constraints: BoxConstraints(
-      //   maxWidth: size.width * 0.8,
-      //   maxHeight: size.height * 0.8,
-      //   minWidth: size.width * 0.5,
-      // ),
       decoration: BoxDecoration(
-        color: Theme.of(context).backgroundColor,
+        color: Theme.of(context).colorScheme.background, // Изменено здесь
         borderRadius: BorderRadius.circular(10.0),
       ),
       child: Padding(
@@ -129,3 +124,4 @@ class _LoadingWidget extends StatelessWidget {
     );
   }
 }
+
