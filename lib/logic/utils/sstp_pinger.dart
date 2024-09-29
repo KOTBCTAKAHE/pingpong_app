@@ -21,7 +21,6 @@ class SstpPinger {
       );
 
       socket.destroy();
-
       success = true;
     } catch (_) {}
 
@@ -33,18 +32,25 @@ class BulkSstpPinger {
   final Duration? timeout;
   final List<SstpDataModel> sstps;
   final Function(SstpPingerResult sstpPinger)? onPing;
+  final Completer<void> cancelCompleter; // Для отмены
   int doneCount = 0;
 
   BulkSstpPinger({
     required this.sstps,
     this.onPing,
     this.timeout,
+    required this.cancelCompleter,
   });
 
   Future<List<SstpPingerResult>> pingAll() async {
     List<SstpPingerResult> result = [];
 
     for (var sstp in sstps) {
+      // Проверка на отмену перед каждым пингом
+      if (cancelCompleter.isCompleted) {
+        break;
+      }
+
       final sstpPinger = await SstpPinger(sstp, timeout).ping();
 
       result.add(sstpPinger);
@@ -56,30 +62,25 @@ class BulkSstpPinger {
 
     return result;
   }
-
-  streamPingAll() async* {
-    for (var sstp in sstps) {
-      yield await SstpPinger(sstp, timeout).ping();
-      doneCount++;
-    }
-  }
 }
 
 class BulkBulkSstpPinger {
   final int count;
   final Duration? timeout;
   final Function(
-    SstpPingerResult sstpPinger,
-    ProgressStatus progress,
-    int index,
-  )? onPing;
+      SstpPingerResult sstpPinger,
+      ProgressStatus progress,
+      int index,
+      )? onPing;
   final List<SstpDataModel> sstps;
+  final Completer<void> cancelCompleter; // Для отмены
 
   BulkBulkSstpPinger({
     required this.count,
     required this.sstps,
     this.timeout = const Duration(milliseconds: 3000),
     this.onPing,
+    required this.cancelCompleter,
   });
 
   Future<List<SstpPingerResult>> start() async {
@@ -89,16 +90,22 @@ class BulkBulkSstpPinger {
     List<Future<List<SstpPingerResult>>> futures = [];
 
     for (int i = 0; i < chunks.length; i++) {
-      final sstps = chunks[i];
+      final sstpsChunk = chunks[i];
+
+      // Проверка на отмену перед запуском новой задачи
+      if (cancelCompleter.isCompleted) {
+        break;
+      }
 
       futures.add(
         BulkSstpPinger(
-          sstps: sstps,
+          sstps: sstpsChunk,
           timeout: timeout,
+          cancelCompleter: cancelCompleter, // Передаем Completer для отмены
           onPing: (sstpPinger) {
             onPing?.call(
               sstpPinger,
-              ProgressStatus(++done[i], sstps.length),
+              ProgressStatus(++done[i], sstpsChunk.length),
               i,
             );
           },

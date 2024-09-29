@@ -4,6 +4,9 @@ part of 'app_bloc.dart';
 abstract class AppState {}
 
 @immutable
+class AppInitial extends AppState {}
+
+@immutable
 class AppStateInitialPingingProgress extends AppState {
   final int chunkCount;
   AppStateInitialPingingProgress(this.chunkCount);
@@ -73,4 +76,4 @@ class AppStateHistory extends AppStateSstps {
 }
 
 @immutable
-class AppInitial extends AppState {}
+class AppStatePingCancelled extends AppState {} // Состояние для отмены пинга

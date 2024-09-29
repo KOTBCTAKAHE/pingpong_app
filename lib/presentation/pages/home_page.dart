@@ -7,6 +7,7 @@ import 'package:pinging/logic/utils/sstp_pinger.dart';
 import 'package:pinging/presentation/components/cards/sstp_address_card.dart';
 import 'package:pinging/presentation/components/pinging_progress_indicator.dart';
 import 'package:pinging/presentation/pages/register_page.dart';
+import 'package:pinging/data/models/sstp_data.dart';
 
 class HomePage extends HookWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -14,7 +15,8 @@ class HomePage extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final scrollController1 = useScrollController();
-    // final scrollController2 = useScrollController();
+    final isPinging = useState(false);
+    final isSorted = useState(false); // Добавляем состояние для сортировки
 
     return SafeArea(
       child: Scaffold(
@@ -27,6 +29,16 @@ class HomePage extends HookWidget {
                 Navigator.of(context).pushReplacement(MaterialPageRoute(
                   builder: (context) => const RegisterPage(),
                 ));
+              },
+            ),
+            IconButton(
+              icon: Icon(
+                isSorted.value ? Icons.sort : Icons.sort_by_alpha,
+                color: isSorted.value ? Colors.green : Colors.white,
+              ),
+              tooltip: 'Sort by Ping',
+              onPressed: () {
+                isSorted.value = !isSorted.value; // Меняем состояние сортировки
               },
             ),
           ],
@@ -48,7 +60,6 @@ class HomePage extends HookWidget {
               );
             },
           ),
-          // title: const Text("Pinging app for MS-SSTP servers"),
         ),
         bottomNavigationBar: Column(
           mainAxisSize: MainAxisSize.min,
@@ -56,7 +67,7 @@ class HomePage extends HookWidget {
             SizedBox(
               height: kBottomNavigationBarHeight,
               child: Container(
-                  color: Theme.of(context).colorScheme.surface,
+                color: Theme.of(context).colorScheme.surface,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
@@ -71,10 +82,21 @@ class HomePage extends HookWidget {
                       ),
                     ),
                     Expanded(
-                      child: IconButton(
+                      child: isPinging.value
+                          ? IconButton(
+                        icon: const Icon(Icons.cancel),
+                        onPressed: () {
+                          context.read<AppBloc>().add(AppEventCancelPing());
+                          isPinging.value = false;
+                        },
+                        color: Colors.red,
+                        tooltip: 'Cancel Ping',
+                      )
+                          : IconButton(
                         icon: const Icon(Icons.upload),
                         onPressed: () {
                           context.read<AppBloc>().add(AppEventPing());
+                          isPinging.value = true;
                         },
                         color: Colors.green,
                         tooltip: 'Ping all',
@@ -87,18 +109,22 @@ class HomePage extends HookWidget {
             const PingingProgressIndicator(),
           ],
         ),
-        body: buildBody(scrollController1),
+        body: buildBody(scrollController1, isSorted.value),
       ),
     );
   }
 
-  Widget buildBody(ScrollController scrollController1) {
+  Widget buildBody(ScrollController scrollController1, bool isSorted) {
     return BlocBuilder<AppBloc, AppState>(
       buildWhen: (_, state) => state is AppStateSstps,
       builder: (context, state) {
         if (state is! AppStateSstps) return const SizedBox();
 
-        final sstps = state.sstps.toList();
+        var sstps = state.sstps.toList();
+
+        if (isSorted) {
+          sstps.sortByPingTime(); // Сортируем по ping времени от меньшего к большему
+        }
 
         return Scrollbar(
           controller: scrollController1,
@@ -150,7 +176,7 @@ class HomePage extends HookWidget {
                     );
 
                     final cachedFile =
-                        cached.firstWhere((e) => e.name == file.name);
+                    cached.firstWhere((e) => e.name == file.name);
 
                     if (file.byteSize != cachedFile.byteSize) {
                       icon = const Icon(
@@ -166,14 +192,10 @@ class HomePage extends HookWidget {
                       elevation: 5,
                       child: BlocBuilder<AppBloc, AppState>(
                         buildWhen: (_, state) =>
-                            state is AppStateSstpFileChecked &&
+                        state is AppStateSstpFileChecked &&
                             state.key == index,
                         builder: (context, state) {
                           bool checked = bloc.isFileSelected(file.name);
-
-                          // if (state is AppStateSstpFileChecked) {
-                          //   checked = state.value;
-                          // }
 
                           return CheckboxListTile(
                             value: checked,
@@ -182,19 +204,18 @@ class HomePage extends HookWidget {
                             },
                             title: Padding(
                               padding:
-                                  const EdgeInsets.symmetric(vertical: 4.0),
+                              const EdgeInsets.symmetric(vertical: 4.0),
                               child: Text(
                                 "${file.name} - ${file.sstpCount}",
                                 style: Theme.of(context).textTheme.titleSmall,
                               ),
                             ),
-                            // secondary:
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 BlocBuilder<AppBloc, AppState>(
                                   buildWhen: (_, state) =>
-                                      state is AppStateUniqueProgress &&
+                                  state is AppStateUniqueProgress &&
                                       state.key == index,
                                   builder: (context, state) {
                                     double value = 0;
@@ -202,7 +223,7 @@ class HomePage extends HookWidget {
                                     String text = "Empty";
 
                                     if (Storage().sstpFiles.values.any(
-                                        (e) => e.name == files[index].name)) {
+                                            (e) => e.name == files[index].name)) {
                                       value = 1;
                                       text = "Done";
                                     }
@@ -215,7 +236,7 @@ class HomePage extends HookWidget {
                                       }
 
                                       text =
-                                          "${progress.count}/${progress.total}";
+                                      "${progress.count}/${progress.total}";
 
                                       if (progress.done) {
                                         text = "Done";
@@ -240,9 +261,10 @@ class HomePage extends HookWidget {
                                                   .textTheme
                                                   .bodySmall!
                                                   .copyWith(
-                                                    color: Colors.white,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
+                                                color: Colors.white,
+                                                fontWeight:
+                                                FontWeight.bold,
+                                              ),
                                             ),
                                           ),
                                         ],

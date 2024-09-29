@@ -24,6 +24,8 @@ class AppBloc extends Bloc<AppEvent, AppState> {
   final LoadingBloc loadingBloc;
 
   Set<SstpDataModel> allSstps = {};
+  StreamSubscription<void>? pingSubscription;
+  Completer<void>? cancelCompleter; // Completer для отмены пинга
 
   AppBloc({
     required this.appErrorBloc,
@@ -52,7 +54,6 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       emit(AppStateSstpFileChecked(
         key: event.index,
         value: !found,
-        // value: isFileSelected(event.file.name),
       ));
     });
 
@@ -84,9 +85,9 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         ));
 
         await Storage().lazyBox.put(
-              event.file.name,
-              jsonEncode(sstps.map((e) => e.toMap()).toList()),
-            );
+          event.file.name,
+          jsonEncode(sstps.map((e) => e.toMap()).toList()),
+        );
       });
 
       Storage().putSstpFile(event.file);
@@ -112,23 +113,19 @@ class AppBloc extends Bloc<AppEvent, AppState> {
 
           await loadSstpsFromCache(emit);
         } catch (e, stacktrace) {
-          // Выводим ошибку и трассировку стека в консоль
           print('Error: $e');
           print('Stacktrace: $stacktrace');
-
-          // Здесь можно также выбросить ошибку дальше, если необходимо
           rethrow;
         }
       });
     });
-
 
     on<AppEventAuth>((event, emit) async {
       loadingBloc.add(const StartLoadingEvent());
 
       await handleError(() async {
         Settings().deviceId =
-            await DeviceIdGenerator().getDeviceId(Settings().deviceId);
+        await DeviceIdGenerator().getDeviceId(Settings().deviceId);
 
         await GithubApi()
             .auth(authKey: event.authKey, deviceId: Settings().deviceId!)
@@ -147,6 +144,13 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     });
 
     on<AppEventPing>((event, emit) async {
+      // Если уже идет пинг, не запускаем новый
+      if (pingSubscription != null) {
+        return;
+      }
+
+      cancelCompleter = Completer<void>(); // Инициализируем Completer для отмены
+
       List<SstpDataModel> sstps = allSstps.toList();
       List<SstpDataModel> working = [];
       int chunkCount = 3;
@@ -156,6 +160,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       BulkBulkSstpPinger pinger = BulkBulkSstpPinger(
         count: chunkCount,
         sstps: sstps.toList(),
+        cancelCompleter: cancelCompleter!, // Передаем Completer для отмены
         onPing: (sstpPinger, progress, index) {
           if (sstpPinger.success) {
             final sstp = sstpPinger.sstp.copyWith(ms: sstpPinger.ms);
@@ -173,8 +178,9 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         },
       );
 
-      await pinger.start().then(
-        (result) {
+      // Сохраняем подписку для возможности отмены
+      pingSubscription = pinger.start().asStream().listen(
+            (result) {
           List<SstpDataModel> working = result
               .where((e) => e.success)
               .map((e) => e.sstp.copyWith(ms: e.ms))
@@ -189,6 +195,22 @@ class AppBloc extends Bloc<AppEvent, AppState> {
           Storage().setWorkingSstps(working);
         },
       );
+
+      // По завершении очистка подписки
+      await pingSubscription!.asFuture();
+      pingSubscription = null;
+      cancelCompleter = null; // Очищаем Completer после завершения
+    });
+
+    on<AppEventCancelPing>((event, emit) async {
+      // Если идет процесс пинга, отменяем его
+      if (pingSubscription != null) {
+        cancelCompleter?.complete(); // Отменяем текущие пинги
+        await pingSubscription!.cancel();
+        pingSubscription = null;
+        cancelCompleter = null;
+        emit(AppStatePingCancelled()); // Новый state для отмены пинга
+      }
     });
   }
 

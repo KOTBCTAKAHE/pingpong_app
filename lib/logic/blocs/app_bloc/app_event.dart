@@ -41,3 +41,6 @@ class AppEventDeleteGhFile extends AppEventGhFile {
 
 @immutable
 class AppEventPing extends AppEvent {}
+
+@immutable
+class AppEventCancelPing extends AppEvent {} // Событие отмены пинга
