@@ -1,3 +1,4 @@
+
 import 'dart:async';
 import 'dart:convert';
 
@@ -52,6 +53,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       emit(AppStateSstpFileChecked(
         key: event.index,
         value: !found,
+        // value: isFileSelected(event.file.name),
       ));
     });
 
@@ -95,35 +97,21 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     });
 
     on<AppEventLoadFiles>((event, emit) async {
-      try {
-        await handleError(() async {
-          var files = await GithubRepository().getListOfFiles();
-          emit(AppStateFiles(files, Storage().sstpFiles.values));
+      await handleError(() async {
+        var files = await GithubRepository().getListOfFiles();
+        emit(AppStateFiles(files, Storage().sstpFiles.values));
 
-          final files2 = files.toList();
+        final files2 = files.toList();
 
-          for (int i = 0; i < files2.length; i++) {
-            emit(AppStateSstpFileChecked(
-              key: i,
-              value: Settings().selectedFiles.any((e) => e == files2[i].name),
-            ));
-          }
+        for (int i = 0; i < files2.length; i++) {
+          emit(AppStateSstpFileChecked(
+            key: i,
+            value: Settings().selectedFiles.any((e) => e == files2[i].name),
+          ));
+        }
 
-          await loadSstpsFromCache(emit);
-        });
-      } catch (e, stackTrace) {
-        print('Error occurred: $e');
-        print('Stack trace: $stackTrace');
-
-        // Обрабатываем ошибку через appErrorBloc
-        appErrorBloc.add(AppErrorAddEvent(
-          LoadError(), // Используем конкретный класс ошибки
-        ));
-        // Вы можете также передавать состояние ошибки через emit:
-        emit(AppStateError(
-          LoadError(), // Используем конкретный класс ошибки
-        ));
-      }
+        await loadSstpsFromCache(emit);
+      });
     });
 
     on<AppEventAuth>((event, emit) async {
