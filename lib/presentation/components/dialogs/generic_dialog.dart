@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
 typedef DialogOptionBuilder<T> = Map<String, T?> Function();
+typedef OptionButtonBuilder<T> = Widget Function(BuildContext context, String option, T? value);
 
 Future<T?> showGenericDialog<T>({
   required BuildContext context,
   required String title,
-  required String content,
-  required DialogOptionBuilder optionsBuilder,
+  required Widget content, // Изменяем тип content на Widget для большей гибкости
+  required DialogOptionBuilder<T> optionsBuilder,
+  OptionButtonBuilder<T>? optionButtonBuilder, // Добавляем этот параметр
 }) {
   final options = optionsBuilder();
   return showDialog<T>(
@@ -14,16 +16,19 @@ Future<T?> showGenericDialog<T>({
     builder: (context) {
       return AlertDialog(
         title: Text(title),
-        content: Text(content),
+        content: content,
         actions: options.keys.map((optionTitle) {
           final value = options[optionTitle];
+
+          // Используем кастомный билд для кнопок, если он предоставлен
+          if (optionButtonBuilder != null) {
+            return optionButtonBuilder(context, optionTitle, value);
+          }
+
+          // Стандартная кнопка, если кастомный билд не предоставлен
           return TextButton(
             onPressed: () {
-              if (value != null) {
-                Navigator.of(context).pop(value);
-              } else {
-                Navigator.of(context).pop();
-              }
+              Navigator.of(context).pop(value);
             },
             child: Text(optionTitle),
           );
