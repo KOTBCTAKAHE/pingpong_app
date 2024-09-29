@@ -14,7 +14,6 @@ class HomePage extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final scrollController1 = useScrollController();
-    // final scrollController2 = useScrollController();
 
     return SafeArea(
       child: Scaffold(
@@ -48,7 +47,6 @@ class HomePage extends HookWidget {
               );
             },
           ),
-          // title: const Text("Pinging app for MS-SSTP servers"),
         ),
         bottomNavigationBar: Column(
           mainAxisSize: MainAxisSize.min,
@@ -63,8 +61,12 @@ class HomePage extends HookWidget {
                     Expanded(
                       child: IconButton(
                         icon: const Icon(Icons.download),
-                        onPressed: () {
-                          selectFiles(context);
+                        onPressed: () async {
+                          try {
+                            await selectFiles(context);
+                          } catch (e) {
+                            _showErrorDialog(context, "File Selection Error", e.toString());
+                          }
                         },
                         color: Colors.white,
                         tooltip: "Get all",
@@ -74,7 +76,11 @@ class HomePage extends HookWidget {
                       child: IconButton(
                         icon: const Icon(Icons.upload),
                         onPressed: () {
-                          context.read<AppBloc>().add(AppEventPing());
+                          try {
+                            context.read<AppBloc>().add(AppEventPing());
+                          } catch (e) {
+                            _showErrorDialog(context, "Ping Error", e.toString());
+                          }
                         },
                         color: Colors.green,
                         tooltip: 'Ping all',
@@ -115,194 +121,232 @@ class HomePage extends HookWidget {
     );
   }
 
-  selectFiles(BuildContext context) {
+  Future<void> selectFiles(BuildContext context) async {
     final bloc = context.read<AppBloc>();
 
-    bloc.add(AppEventLoadFiles());
+    try {
+      bloc.add(AppEventLoadFiles());
 
-    return showDialog<String>(
-      context: context,
-      builder: (context) {
-        return BlocBuilder<AppBloc, AppState>(
-          buildWhen: (_, state) => state is AppStateFiles,
-          builder: (context, state) {
-            Widget child = const Center(child: CircularProgressIndicator());
+      await showDialog<String>(
+        context: context,
+        builder: (context) {
+          return BlocBuilder<AppBloc, AppState>(
+            buildWhen: (_, state) => state is AppStateFiles,
+            builder: (context, state) {
+              Widget child = const Center(child: CircularProgressIndicator());
 
-            if (state is AppStateFiles) {
-              final files = state.files.toList();
-              final cached = state.cached.toList();
+              if (state is AppStateFiles) {
+                final files = state.files.toList();
+                final cached = state.cached.toList();
 
-              child = ListView.builder(
-                shrinkWrap: true,
-                itemCount: files.length,
-                itemBuilder: (context, index) {
-                  final file = files[index];
+                child = ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: files.length,
+                  itemBuilder: (context, index) {
+                    final file = files[index];
 
-                  Icon icon = const Icon(
-                    Icons.download_rounded,
-                    color: Colors.green,
-                  );
-
-                  if (cached.any((e) => e.name == file.name)) {
-                    icon = const Icon(
-                      Icons.check_circle_rounded,
+                    Icon icon = const Icon(
+                      Icons.download_rounded,
                       color: Colors.green,
                     );
 
-                    final cachedFile =
-                        cached.firstWhere((e) => e.name == file.name);
-
-                    if (file.byteSize != cachedFile.byteSize) {
+                    if (cached.any((e) => e.name == file.name)) {
                       icon = const Icon(
-                        Icons.refresh_rounded,
+                        Icons.check_circle_rounded,
                         color: Colors.green,
                       );
+
+                      final cachedFile =
+                          cached.firstWhere((e) => e.name == file.name);
+
+                      if (file.byteSize != cachedFile.byteSize) {
+                        icon = const Icon(
+                          Icons.refresh_rounded,
+                          color: Colors.green,
+                        );
+                      }
                     }
-                  }
 
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4.0),
-                    child: Material(
-                      elevation: 5,
-                      child: BlocBuilder<AppBloc, AppState>(
-                        buildWhen: (_, state) =>
-                            state is AppStateSstpFileChecked &&
-                            state.key == index,
-                        builder: (context, state) {
-                          bool checked = bloc.isFileSelected(file.name);
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: Material(
+                        elevation: 5,
+                        child: BlocBuilder<AppBloc, AppState>(
+                          buildWhen: (_, state) =>
+                              state is AppStateSstpFileChecked &&
+                              state.key == index,
+                          builder: (context, state) {
+                            bool checked = bloc.isFileSelected(file.name);
 
-                          // if (state is AppStateSstpFileChecked) {
-                          //   checked = state.value;
-                          // }
-
-                          return CheckboxListTile(
-                            value: checked,
-                            onChanged: (_) {
-                              bloc.add(AppEventToggleGhFile(files, index));
-                            },
-                            title: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 4.0),
-                              child: Text(
-                                "${file.name} - ${file.sstpCount}",
-                                style: Theme.of(context).textTheme.titleSmall,
+                            return CheckboxListTile(
+                              value: checked,
+                              onChanged: (_) {
+                                bloc.add(AppEventToggleGhFile(files, index));
+                              },
+                              title: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 4.0),
+                                child: Text(
+                                  "${file.name} - ${file.sstpCount}",
+                                  style:
+                                      Theme.of(context).textTheme.titleSmall,
+                                ),
                               ),
-                            ),
-                            // secondary:
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                BlocBuilder<AppBloc, AppState>(
-                                  buildWhen: (_, state) =>
-                                      state is AppStateUniqueProgress &&
-                                      state.key == index,
-                                  builder: (context, state) {
-                                    double value = 0;
-                                    ProgressStatus? progress;
-                                    String text = "Empty";
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  BlocBuilder<AppBloc, AppState>(
+                                    buildWhen: (_, state) =>
+                                        state is AppStateUniqueProgress &&
+                                        state.key == index,
+                                    builder: (context, state) {
+                                      double value = 0;
+                                      ProgressStatus? progress;
+                                      String text = "Empty";
 
-                                    if (Storage().sstpFiles.values.any(
-                                        (e) => e.name == files[index].name)) {
-                                      value = 1;
-                                      text = "Done";
-                                    }
-
-                                    if (state is AppStateUniqueProgress) {
-                                      progress = state.progress;
-
-                                      if (progress.total != 0) {
-                                        value = progress.count / progress.total;
-                                      }
-
-                                      text =
-                                          "${progress.count}/${progress.total}";
-
-                                      if (progress.done) {
+                                      if (Storage().sstpFiles.values.any(
+                                          (e) => e.name == files[index].name)) {
+                                        value = 1;
                                         text = "Done";
                                       }
-                                    }
 
-                                    return Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 4.0,
-                                      ),
-                                      child: Stack(
-                                        children: [
-                                          LinearProgressIndicator(
-                                            color: Colors.green,
-                                            value: value,
-                                            minHeight: 15,
-                                          ),
-                                          Center(
-                                            child: Text(
-                                              text,
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .bodySmall!
-                                                  .copyWith(
-                                                    color: Colors.white,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
+                                      if (state is AppStateUniqueProgress) {
+                                        progress = state.progress;
+
+                                        if (progress.total != 0) {
+                                          value =
+                                              progress.count / progress.total;
+                                        }
+
+                                        text =
+                                            "${progress.count}/${progress.total}";
+
+                                        if (progress.done) {
+                                          text = "Done";
+                                        }
+                                      }
+
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 4.0,
+                                        ),
+                                        child: Stack(
+                                          children: [
+                                            LinearProgressIndicator(
+                                              color: Colors.green,
+                                              value: value,
+                                              minHeight: 15,
                                             ),
-                                          ),
-                                        ],
+                                            Center(
+                                              child: Text(
+                                                text,
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .bodySmall!
+                                                    .copyWith(
+                                                      color: Colors.white,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        onPressed: () {
+                                          try {
+                                            bloc.add(
+                                              AppEventDeleteGhFile(
+                                                  files, index),
+                                            );
+                                          } catch (e) {
+                                            _showErrorDialog(
+                                              context,
+                                              "Delete Error",
+                                              e.toString(),
+                                            );
+                                          }
+                                        },
+                                        icon: const Icon(
+                                          Icons.delete_rounded,
+                                          color: Colors.red,
+                                        ),
                                       ),
-                                    );
-                                  },
-                                ),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      onPressed: () {
-                                        bloc.add(
-                                          AppEventDeleteGhFile(files, index),
-                                        );
-                                      },
-                                      icon: const Icon(
-                                        Icons.delete_rounded,
-                                        color: Colors.red,
+                                      const SizedBox(width: 8.0),
+                                      IconButton(
+                                        onPressed: () {
+                                          try {
+                                            bloc.add(
+                                              AppEventDownloadGhFile(
+                                                  files, index),
+                                            );
+                                          } catch (e) {
+                                            _showErrorDialog(
+                                              context,
+                                              "Download Error",
+                                              e.toString(),
+                                            );
+                                          }
+                                        },
+                                        icon: icon,
                                       ),
-                                    ),
-                                    const SizedBox(width: 8.0),
-                                    IconButton(
-                                      onPressed: () {
-                                        bloc.add(
-                                          AppEventDownloadGhFile(files, index),
-                                        );
-                                      },
-                                      icon: icon,
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          );
-                        },
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                  );
-                },
-              );
-            }
-            final size = MediaQuery.of(context).size;
-            return AlertDialog(
-              title: const Text("Search from files:"),
-              content: SizedBox(
-                width: size.width > 400 ? 400 : size.width,
-                child: child,
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
+                    );
                   },
-                  child: const Text("Ok"),
+                );
+              }
+              final size = MediaQuery.of(context).size;
+              return AlertDialog(
+                title: const Text("Search from files:"),
+                content: SizedBox(
+                  width: size.width > 400 ? 400 : size.width,
+                  child: child,
                 ),
-              ],
-            );
-          },
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text("Ok"),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+    } catch (e) {
+      _showErrorDialog(context, "File Load Error", e.toString());
+    }
+  }
+
+  void _showErrorDialog(BuildContext context, String title, String message) {
+    showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
         );
       },
     );
