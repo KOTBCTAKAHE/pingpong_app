@@ -17,7 +17,7 @@ class HomePage extends HookWidget {
     final scrollController1 = useScrollController();
     final isPinging = useState(false);
     final isSorted = useState(false);
-    final loading = useState(false); // Состояние загрузки
+    final loading = useState(false); // Исправлено: добавлено состояние для загрузки
 
     return SafeArea(
       child: Scaffold(
@@ -132,7 +132,7 @@ class HomePage extends HookWidget {
 
         return Scrollbar(
           controller: scrollController1,
-          isAlwaysShown: true, // Показываем ползунок для скроллинга всегда
+          thumbVisibility: true, // Исправлено: заменён устаревший параметр
           child: AnimatedList(
             key: GlobalKey<AnimatedListState>(),
             initialItemCount: sstps.length,
@@ -298,10 +298,10 @@ class HomePage extends HookWidget {
                                     ),
                                     const SizedBox(width: 8.0),
                                     IconButton(
-                                      onPressed: () async {
-                                        loading.value = true;
-                                        await bloc.add(AppEventDownloadGhFile(files, index));
-                                        loading.value = false;
+                                      onPressed: () {
+                                        loading.value = true; // Исправлено: установка загрузки
+                                        bloc.add(AppEventDownloadGhFile(files, index));
+                                        loading.value = false; // Исправлено: сброс загрузки
                                         showSnackbar(context, "File downloaded");
                                       },
                                       icon: loading.value
@@ -320,7 +320,6 @@ class HomePage extends HookWidget {
                 },
               );
             }
-
             final size = MediaQuery.of(context).size;
             return AlertDialog(
               title: const Text("Search from files:"),
