@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:isolate';
 import 'package:pinging/data/models/sstp_data.dart';
 import 'package:pinging/data/models/sstp_data_result.dart';
 
@@ -32,8 +33,7 @@ class BulkSstpPinger {
   final Duration? timeout;
   final List<SstpDataModel> sstps;
   final Function(SstpPingerResult sstpPinger)? onPing;
-  final Completer<void> cancelCompleter; // Для отмены
-  int doneCount = 0;
+  final Completer<void> cancelCompleter;
 
   BulkSstpPinger({
     required this.sstps,
@@ -45,21 +45,18 @@ class BulkSstpPinger {
   Future<List<SstpPingerResult>> pingAll() async {
     List<SstpPingerResult> result = [];
 
-    for (var sstp in sstps) {
-      // Проверка на отмену перед каждым пингом
-      if (cancelCompleter.isCompleted) {
-        break;
-      }
+    // Многопоточная обработка
+    List<Future<SstpPingerResult>> futures = sstps.map((sstp) async {
+      if (cancelCompleter.isCompleted) return Future.value();
 
       final sstpPinger = await SstpPinger(sstp, timeout).ping();
-
       result.add(sstpPinger);
 
       onPing?.call(sstpPinger);
+      return sstpPinger;
+    }).toList();
 
-      doneCount++;
-    }
-
+    await Future.wait(futures);
     return result;
   }
 }
@@ -67,13 +64,9 @@ class BulkSstpPinger {
 class BulkBulkSstpPinger {
   final int count;
   final Duration? timeout;
-  final Function(
-      SstpPingerResult sstpPinger,
-      ProgressStatus progress,
-      int index,
-      )? onPing;
+  final Function(SstpPingerResult sstpPinger, ProgressStatus progress, int index)? onPing;
   final List<SstpDataModel> sstps;
-  final Completer<void> cancelCompleter; // Для отмены
+  final Completer<void> cancelCompleter;
 
   BulkBulkSstpPinger({
     required this.count,
@@ -92,24 +85,21 @@ class BulkBulkSstpPinger {
     for (int i = 0; i < chunks.length; i++) {
       final sstpsChunk = chunks[i];
 
-      // Проверка на отмену перед запуском новой задачи
-      if (cancelCompleter.isCompleted) {
-        break;
-      }
+      if (cancelCompleter.isCompleted) break;
 
       futures.add(
-        BulkSstpPinger(
-          sstps: sstpsChunk,
-          timeout: timeout,
-          cancelCompleter: cancelCompleter, // Передаем Completer для отмены
-          onPing: (sstpPinger) {
+        _runIsolateForPing(
+          sstpsChunk,
+          timeout,
+          cancelCompleter,
+          (sstpPinger) {
             onPing?.call(
               sstpPinger,
               ProgressStatus(++done[i], sstpsChunk.length),
               i,
             );
           },
-        ).pingAll(),
+        ),
       );
     }
 
@@ -117,6 +107,54 @@ class BulkBulkSstpPinger {
 
     return list.joinChunks();
   }
+
+  Future<List<SstpPingerResult>> _runIsolateForPing(
+      List<SstpDataModel> sstpsChunk,
+      Duration? timeout,
+      Completer<void> cancelCompleter,
+      Function(SstpPingerResult) onPing) async {
+    final receivePort = ReceivePort();
+    final isolate = await Isolate.spawn(
+      _pingIsolateEntry,
+      PingIsolateArgs(
+        sstpsChunk,
+        timeout,
+        cancelCompleter,
+        receivePort.sendPort,
+      ),
+    );
+
+    final results = await receivePort.first as List<SstpPingerResult>;
+    isolate.kill();
+    return results;
+  }
+}
+
+void _pingIsolateEntry(PingIsolateArgs args) async {
+  final results = await BulkSstpPinger(
+    sstps: args.sstps,
+    timeout: args.timeout,
+    cancelCompleter: args.cancelCompleter,
+    onPing: (result) {
+      args.sendPort.send(result);
+    },
+  ).pingAll();
+
+  args.sendPort.send(results);
+}
+
+class PingIsolateArgs {
+  final List<SstpDataModel> sstps;
+  final Duration? timeout;
+  final Completer<void> cancelCompleter;
+  final SendPort sendPort;
+
+  PingIsolateArgs(
+    this.sstps,
+    this.timeout,
+    this.cancelCompleter,
+    this.sendPort,
+  );
 }
 
 extension SplitIntoChunks<T> on List<T> {
