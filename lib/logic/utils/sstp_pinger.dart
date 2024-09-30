@@ -46,7 +46,7 @@ class BulkSstpPinger {
     List<SstpPingerResult> result = [];
 
     // Многопоточная обработка
-    List<Future<SstpPingerResult>> futures = sstps.map((sstp) async {
+    List<Future<SstpPingerResult>> futures = sstps.map<Future<SstpPingerResult>>((sstp) async {
       if (cancelCompleter.isCompleted) return Future.value();
 
       final sstpPinger = await SstpPinger(sstp, timeout).ping();
