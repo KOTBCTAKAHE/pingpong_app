@@ -17,7 +17,7 @@ class HomePage extends HookWidget {
     final scrollController1 = useScrollController();
     final isPinging = useState(false);
     final isSorted = useState(false);
-    final loading = useState(false); // Исправлено: добавлено состояние для загрузки
+    final loading = useState(false); // Использование ValueNotifier для состояния загрузки
 
     return SafeArea(
       child: Scaffold(
@@ -132,7 +132,7 @@ class HomePage extends HookWidget {
 
         return Scrollbar(
           controller: scrollController1,
-          thumbVisibility: true, // Исправлено: заменён устаревший параметр
+          thumbVisibility: true, // Использование правильного параметра thumbVisibility
           child: AnimatedList(
             key: GlobalKey<AnimatedListState>(),
             initialItemCount: sstps.length,
@@ -298,13 +298,13 @@ class HomePage extends HookWidget {
                                     ),
                                     const SizedBox(width: 8.0),
                                     IconButton(
-                                      onPressed: () {
-                                        loading.value = true; // Исправлено: установка загрузки
-                                        bloc.add(AppEventDownloadGhFile(files, index));
-                                        loading.value = false; // Исправлено: сброс загрузки
+                                      onPressed: () async {
+                                        loading.value = true; // Устанавливаем состояние загрузки
+                                        await bloc.add(AppEventDownloadGhFile(files, index)); // Асинхронная загрузка файла
+                                        loading.value = false; // Сбрасываем состояние загрузки
                                         showSnackbar(context, "File downloaded");
                                       },
-                                      icon: loading.value
+                                      icon: loading.value // Показ иконки в зависимости от состояния загрузки
                                           ? const CircularProgressIndicator()
                                           : icon,
                                     ),
