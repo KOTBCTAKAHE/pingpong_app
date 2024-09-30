@@ -30,6 +30,12 @@ class AppEventDownloadGhFile extends AppEventGhFile {
 }
 
 @immutable
+class AppEventDownloadAllGhFiles extends AppEvent {
+  final List<SstpFileMeta> files;
+  AppEventDownloadAllGhFiles(this.files);
+}
+
+@immutable
 class AppEventToggleGhFile extends AppEventGhFile {
   AppEventToggleGhFile(super.files, super.index);
 }

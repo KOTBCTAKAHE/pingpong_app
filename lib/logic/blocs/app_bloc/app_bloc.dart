@@ -96,6 +96,36 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       await loadSstpsFromCache(emit);
     });
 
+    on<AppEventDownloadAllGhFiles>((event, emit) async {
+      await handleError(() async {
+        for (int i = 0; i < event.files.length; i++) {
+          final file = event.files[i];
+          final sstps = await GithubRepository().getSstpsByFileName(
+            file.name,
+            onReceiveProgress: (count, total) => emit(AppStateUniqueProgress(
+              key: i,
+              progress: ProgressStatus(count, file.byteSize),
+            )),
+          );
+
+          await Storage().lazyBox.put(
+            file.name,
+            jsonEncode(sstps.map((e) => e.toMap()).toList()),
+          );
+
+          emit(AppStateUniqueProgress(
+            key: i,
+            progress: ProgressStatus.done(),
+          ));
+          Storage().putSstpFile(file);
+        }
+      });
+
+      emit(AppStateFiles(event.files, Storage().sstpFiles.values));
+
+      await loadSstpsFromCache(emit);
+    });
+
     on<AppEventLoadFiles>((event, emit) async {
       await handleError(() async {
         try {
@@ -144,12 +174,11 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     });
 
     on<AppEventPing>((event, emit) async {
-      // Если уже идет пинг, не запускаем новый
       if (pingSubscription != null) {
         return;
       }
 
-      cancelCompleter = Completer<void>(); // Инициализируем Completer для отмены
+      cancelCompleter = Completer<void>();
 
       List<SstpDataModel> sstps = allSstps.toList();
       List<SstpDataModel> working = [];
@@ -160,7 +189,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       BulkBulkSstpPinger pinger = BulkBulkSstpPinger(
         count: chunkCount,
         sstps: sstps.toList(),
-        cancelCompleter: cancelCompleter!, // Передаем Completer для отмены
+        cancelCompleter: cancelCompleter!,
         onPing: (sstpPinger, progress, index) {
           if (sstpPinger.success) {
             final sstp = sstpPinger.sstp.copyWith(ms: sstpPinger.ms);
@@ -178,7 +207,6 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         },
       );
 
-      // Сохраняем подписку для возможности отмены
       pingSubscription = pinger.start().asStream().listen(
             (result) {
           List<SstpDataModel> working = result
@@ -196,20 +224,18 @@ class AppBloc extends Bloc<AppEvent, AppState> {
         },
       );
 
-      // По завершении очистка подписки
       await pingSubscription!.asFuture();
       pingSubscription = null;
-      cancelCompleter = null; // Очищаем Completer после завершения
+      cancelCompleter = null;
     });
 
     on<AppEventCancelPing>((event, emit) async {
-      // Если идет процесс пинга, отменяем его
       if (pingSubscription != null) {
-        cancelCompleter?.complete(); // Отменяем текущие пинги
+        cancelCompleter?.complete();
         await pingSubscription!.cancel();
         pingSubscription = null;
         cancelCompleter = null;
-        emit(AppStatePingCancelled()); // Новый state для отмены пинга
+        emit(AppStatePingCancelled());
       }
     });
   }
