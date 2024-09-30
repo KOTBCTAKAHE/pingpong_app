@@ -16,8 +16,7 @@ class HomePage extends HookWidget {
   Widget build(BuildContext context) {
     final scrollController1 = useScrollController();
     final isPinging = useState(false);
-    final isSorted = useState(false);
-    final loading = useState(false); // Использование ValueNotifier для состояния загрузки
+    final isSorted = useState(false); // Добавляем состояние для сортировки
 
     return SafeArea(
       child: Scaffold(
@@ -39,8 +38,7 @@ class HomePage extends HookWidget {
               ),
               tooltip: 'Sort by Ping',
               onPressed: () {
-                isSorted.value = !isSorted.value;
-                showSnackbar(context, isSorted.value ? "Sorted by ping" : "Unsorted");
+                isSorted.value = !isSorted.value; // Меняем состояние сортировки
               },
             ),
           ],
@@ -86,25 +84,23 @@ class HomePage extends HookWidget {
                     Expanded(
                       child: isPinging.value
                           ? IconButton(
-                              icon: const Icon(Icons.cancel),
-                              onPressed: () {
-                                context.read<AppBloc>().add(AppEventCancelPing());
-                                isPinging.value = false;
-                                showSnackbar(context, "Ping canceled", color: Colors.red);
-                              },
-                              color: Colors.red,
-                              tooltip: 'Cancel Ping',
-                            )
+                        icon: const Icon(Icons.cancel),
+                        onPressed: () {
+                          context.read<AppBloc>().add(AppEventCancelPing());
+                          isPinging.value = false;
+                        },
+                        color: Colors.red,
+                        tooltip: 'Cancel Ping',
+                      )
                           : IconButton(
-                              icon: const Icon(Icons.upload),
-                              onPressed: () {
-                                context.read<AppBloc>().add(AppEventPing());
-                                isPinging.value = true;
-                                showSnackbar(context, "Ping started");
-                              },
-                              color: Colors.green,
-                              tooltip: 'Ping all',
-                            ),
+                        icon: const Icon(Icons.upload),
+                        onPressed: () {
+                          context.read<AppBloc>().add(AppEventPing());
+                          isPinging.value = true;
+                        },
+                        color: Colors.green,
+                        tooltip: 'Ping all',
+                      ),
                     ),
                   ],
                 ),
@@ -113,12 +109,12 @@ class HomePage extends HookWidget {
             const PingingProgressIndicator(),
           ],
         ),
-        body: buildBody(scrollController1, isSorted.value, loading),
+        body: buildBody(scrollController1, isSorted.value),
       ),
     );
   }
 
-  Widget buildBody(ScrollController scrollController1, bool isSorted, ValueNotifier<bool> loading) {
+  Widget buildBody(ScrollController scrollController1, bool isSorted) {
     return BlocBuilder<AppBloc, AppState>(
       buildWhen: (_, state) => state is AppStateSstps,
       builder: (context, state) {
@@ -127,20 +123,15 @@ class HomePage extends HookWidget {
         var sstps = state.sstps.toList();
 
         if (isSorted) {
-          sstps.sortByPingTime();
+          sstps.sortByPingTime(); // Сортируем по ping времени от меньшего к большему
         }
 
         return Scrollbar(
           controller: scrollController1,
-          thumbVisibility: true, // Использование правильного параметра thumbVisibility
-          child: AnimatedList(
-            key: GlobalKey<AnimatedListState>(),
-            initialItemCount: sstps.length,
-            itemBuilder: (context, index, animation) {
-              return FadeTransition(
-                opacity: animation,
-                child: SstpAddressCard(sstp: sstps[index]),
-              );
+          child: ListView.builder(
+            itemCount: sstps.length,
+            itemBuilder: (context, index) {
+              return SstpAddressCard(sstp: sstps[index]);
             },
             controller: scrollController1,
             shrinkWrap: true,
@@ -185,7 +176,7 @@ class HomePage extends HookWidget {
                     );
 
                     final cachedFile =
-                        cached.firstWhere((e) => e.name == file.name);
+                    cached.firstWhere((e) => e.name == file.name);
 
                     if (file.byteSize != cachedFile.byteSize) {
                       icon = const Icon(
@@ -201,7 +192,8 @@ class HomePage extends HookWidget {
                       elevation: 5,
                       child: BlocBuilder<AppBloc, AppState>(
                         buildWhen: (_, state) =>
-                            state is AppStateSstpFileChecked && state.key == index,
+                        state is AppStateSstpFileChecked &&
+                            state.key == index,
                         builder: (context, state) {
                           bool checked = bloc.isFileSelected(file.name);
 
@@ -209,10 +201,10 @@ class HomePage extends HookWidget {
                             value: checked,
                             onChanged: (_) {
                               bloc.add(AppEventToggleGhFile(files, index));
-                              showSnackbar(context, checked ? "File deselected" : "File selected");
                             },
                             title: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4.0),
+                              padding:
+                              const EdgeInsets.symmetric(vertical: 4.0),
                               child: Text(
                                 "${file.name} - ${file.sstpCount}",
                                 style: Theme.of(context).textTheme.titleSmall,
@@ -223,7 +215,7 @@ class HomePage extends HookWidget {
                               children: [
                                 BlocBuilder<AppBloc, AppState>(
                                   buildWhen: (_, state) =>
-                                      state is AppStateUniqueProgress &&
+                                  state is AppStateUniqueProgress &&
                                       state.key == index,
                                   builder: (context, state) {
                                     double value = 0;
@@ -231,7 +223,7 @@ class HomePage extends HookWidget {
                                     String text = "Empty";
 
                                     if (Storage().sstpFiles.values.any(
-                                        (e) => e.name == files[index].name)) {
+                                            (e) => e.name == files[index].name)) {
                                       value = 1;
                                       text = "Done";
                                     }
@@ -244,7 +236,7 @@ class HomePage extends HookWidget {
                                       }
 
                                       text =
-                                          "${progress.count}/${progress.total}";
+                                      "${progress.count}/${progress.total}";
 
                                       if (progress.done) {
                                         text = "Done";
@@ -269,10 +261,10 @@ class HomePage extends HookWidget {
                                                   .textTheme
                                                   .bodySmall!
                                                   .copyWith(
-                                                    color: Colors.white,
-                                                    fontWeight:
-                                                        FontWeight.bold,
-                                                  ),
+                                                color: Colors.white,
+                                                fontWeight:
+                                                FontWeight.bold,
+                                              ),
                                             ),
                                           ),
                                         ],
@@ -289,7 +281,6 @@ class HomePage extends HookWidget {
                                         bloc.add(
                                           AppEventDeleteGhFile(files, index),
                                         );
-                                        showSnackbar(context, "File deleted", color: Colors.red);
                                       },
                                       icon: const Icon(
                                         Icons.delete_rounded,
@@ -298,15 +289,12 @@ class HomePage extends HookWidget {
                                     ),
                                     const SizedBox(width: 8.0),
                                     IconButton(
-                                      onPressed: () async {
-                                        loading.value = true; // Устанавливаем состояние загрузки
-                                        await bloc.add(AppEventDownloadGhFile(files, index)); // Асинхронная загрузка файла
-                                        loading.value = false; // Сбрасываем состояние загрузки
-                                        showSnackbar(context, "File downloaded");
+                                      onPressed: () {
+                                        bloc.add(
+                                          AppEventDownloadGhFile(files, index),
+                                        );
                                       },
-                                      icon: loading.value // Показ иконки в зависимости от состояния загрузки
-                                          ? const CircularProgressIndicator()
-                                          : icon,
+                                      icon: icon,
                                     ),
                                   ],
                                 ),
@@ -339,15 +327,6 @@ class HomePage extends HookWidget {
           },
         );
       },
-    );
-  }
-
-  void showSnackbar(BuildContext context, String message, {Color color = Colors.green}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: color,
-      ),
     );
   }
 }
