@@ -88,6 +88,17 @@ class SstpAddressCard extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      const SizedBox(height: 4), // Добавляем отступ между info и info2
+                      Text(
+                        sstp.info2 ?? ("- " * 10), // Отображаем info2
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.white70,
+                          height: 1.4,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
                   ),
                 ),
