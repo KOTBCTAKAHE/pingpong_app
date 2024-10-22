@@ -43,7 +43,8 @@ class BulkSstpPinger {
   });
 
   Future<List<SstpPingerResult>> pingAll() async {
-    List<SstpPingerResult> result = [];
+    // Параллельный запуск пингов для всех адресов
+    List<Future<SstpPingerResult>> pingers = [];
 
     for (var sstp in sstps) {
       // Проверка на отмену перед каждым пингом
@@ -51,16 +52,18 @@ class BulkSstpPinger {
         break;
       }
 
-      final sstpPinger = await SstpPinger(sstp, timeout).ping();
+      pingers.add(SstpPinger(sstp, timeout).ping());
+    }
 
-      result.add(sstpPinger);
+    // Ожидаем завершения всех пингов параллельно
+    final results = await Future.wait(pingers);
 
-      onPing?.call(sstpPinger);
-
+    for (var result in results) {
+      onPing?.call(result);
       doneCount++;
     }
 
-    return result;
+    return results;
   }
 }
 
@@ -87,6 +90,7 @@ class BulkBulkSstpPinger {
     final chunks = sstps.splitIntoChunks(count);
     final done = List<int>.generate(chunks.length, (_) => 0);
 
+    // Используем Future.wait для выполнения задач параллельно
     List<Future<List<SstpPingerResult>>> futures = [];
 
     for (int i = 0; i < chunks.length; i++) {
@@ -113,6 +117,7 @@ class BulkBulkSstpPinger {
       );
     }
 
+    // Ожидаем завершения всех групп пингов
     final list = await Future.wait(futures);
 
     return list.joinChunks();
