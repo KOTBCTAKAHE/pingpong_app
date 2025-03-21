@@ -1,10 +1,8 @@
 import 'dart:async';
 import 'dart:io';
-
 import 'package:pinging/data/models/sstp_data.dart';
 import 'package:pinging/data/models/sstp_data_result.dart';
 
-/// Класс для одиночного пинга с точным измерением времени отклика
 class SstpPinger {
   final Duration? timeout;
   final SstpDataModel sstp;
@@ -16,83 +14,139 @@ class SstpPinger {
     bool success = false;
 
     try {
-      // Запускаем соединение и ограничиваем время выполнения
       final socket = await Socket.connect(
         sstp.ip,
         sstp.port,
         timeout: timeout,
       );
-      // Фиксируем время сразу после установления соединения
-      stopwatch.stop();
-      // Закрываем соединение сразу после подключения
+
       socket.destroy();
       success = true;
-    } catch (e) {
-      stopwatch.stop();
-      // Можно добавить логирование ошибки e для отладки
-    }
+    } catch (_) {}
 
     return SstpPingerResult(sstp, success, stopwatch.elapsedMilliseconds);
   }
 }
 
-/// Класс для массового параллельного пинга с ограничением одновременных запросов
+class BulkSstpPinger {
+  final Duration? timeout;
+  final List<SstpDataModel> sstps;
+  final Function(SstpPingerResult sstpPinger)? onPing;
+  final Completer<void> cancelCompleter; // Для отмены
+  int doneCount = 0;
+
+  BulkSstpPinger({
+    required this.sstps,
+    this.onPing,
+    this.timeout,
+    required this.cancelCompleter,
+  });
+
+  Future<List<SstpPingerResult>> pingAll() async {
+    List<SstpPingerResult> result = [];
+
+    for (var sstp in sstps) {
+      // Проверка на отмену перед каждым пингом
+      if (cancelCompleter.isCompleted) {
+        break;
+      }
+
+      final sstpPinger = await SstpPinger(sstp, timeout).ping();
+
+      result.add(sstpPinger);
+
+      onPing?.call(sstpPinger);
+
+      doneCount++;
+    }
+
+    return result;
+  }
+}
+
 class BulkBulkSstpPinger {
-  /// Максимальное число одновременных пингов
-  final int maxConcurrent;
+  final int count;
   final Duration? timeout;
   final Function(
-    SstpPingerResult sstpPinger,
-    ProgressStatus progress,
-    int index,
-  )? onPing;
+      SstpPingerResult sstpPinger,
+      ProgressStatus progress,
+      int index,
+      )? onPing;
   final List<SstpDataModel> sstps;
   final Completer<void> cancelCompleter; // Для отмены
 
   BulkBulkSstpPinger({
-    required this.maxConcurrent,
+    required this.count,
     required this.sstps,
     this.timeout = const Duration(milliseconds: 3000),
     this.onPing,
     required this.cancelCompleter,
   });
 
-  /// Запускает пинг всех серверов с параллельным выполнением
   Future<List<SstpPingerResult>> start() async {
-    final results = <SstpPingerResult>[];
-    int doneCount = 0;
-    // Создаем очередь пингов
-    final queue = List<SstpDataModel>.from(sstps);
+    final chunks = sstps.splitIntoChunks(count);
+    final done = List<int>.generate(chunks.length, (_) => 0);
 
-    // Функция, которая выполняет пинги из очереди до её опустошения
-    Future<void> worker(int workerIndex) async {
-      while (queue.isNotEmpty) {
-        // Проверка на отмену перед началом нового пинга
-        if (cancelCompleter.isCompleted) break;
-        // Извлекаем сервер из очереди
-        final sstp = queue.removeAt(0);
-        final result = await SstpPinger(sstp, timeout).ping();
-        results.add(result);
-        doneCount++;
+    List<Future<List<SstpPingerResult>>> futures = [];
 
-        // Вызываем callback с информацией о прогрессе
-        onPing?.call(result, ProgressStatus(doneCount, sstps.length), workerIndex);
+    for (int i = 0; i < chunks.length; i++) {
+      final sstpsChunk = chunks[i];
+
+      // Проверка на отмену перед запуском новой задачи
+      if (cancelCompleter.isCompleted) {
+        break;
       }
+
+      futures.add(
+        BulkSstpPinger(
+          sstps: sstpsChunk,
+          timeout: timeout,
+          cancelCompleter: cancelCompleter, // Передаем Completer для отмены
+          onPing: (sstpPinger) {
+            onPing?.call(
+              sstpPinger,
+              ProgressStatus(++done[i], sstpsChunk.length),
+              i,
+            );
+          },
+        ).pingAll(),
+      );
     }
 
-    // Запускаем пул из [maxConcurrent] параллельных задач
-    final workers = List.generate(
-      maxConcurrent,
-      (index) => worker(index),
-    );
+    final list = await Future.wait(futures);
 
-    await Future.wait(workers);
-
-    return results;
+    return list.joinChunks();
   }
 }
 
-/// Статус прогресса пинга
+extension SplitIntoChunks<T> on List<T> {
+  List<List<T>> splitIntoChunks(int n) {
+    int chunkSize = (length / n).ceil();
+    List<List<T>> chunks = [];
+
+    for (var i = 0; i < length; i += chunkSize) {
+      chunks.add(sublist(
+        i,
+        i + chunkSize > length ? length : i + chunkSize,
+      ));
+    }
+
+    return chunks;
+  }
+}
+
+extension ChunksJoiner<T> on List<List<T>> {
+  List<T> joinChunks() {
+    List<T> result = [];
+
+    for (var list in this) {
+      result.addAll(list);
+    }
+
+    return result;
+  }
+}
+
 class ProgressStatus {
   final int count;
   final int total;
